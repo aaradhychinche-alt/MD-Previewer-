@@ -15,6 +15,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
+  trustHost: true,
   debug: process.env.NODE_ENV === 'development',
   secret: process.env.AUTH_SECRET, // Explicitly set secret just in case
   callbacks: {
