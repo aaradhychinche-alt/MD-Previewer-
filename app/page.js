@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import RemarkGfm from 'remark-gfm';
 import { useSession, signIn, signOut } from "next-auth/react";
-import { FileText, Search, Github, AlertTriangle, Loader2, BookOpen, Sun, Moon, History, Trash2, ArrowLeft, LogIn, LogOut } from 'lucide-react';
-import { fetchRepoData, fetchMarkdown } from './lib/github';
+import { FileText, Search, Github, AlertTriangle, Loader2, BookOpen, Sun, Moon, History, Trash2, ArrowLeft, LogIn, LogOut, GitFork } from 'lucide-react';
+import { fetchRepoData, fetchMarkdown, fetchUserForks } from './lib/github';
 import styles from './page.module.css';
 
 export default function Home() {
@@ -21,6 +21,10 @@ export default function Home() {
   // History State
   const [recentRepos, setRecentRepos] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  
+  // Forks State
+  const [forks, setForks] = useState([]);
+  const [showForks, setShowForks] = useState(false);
 
   useEffect(() => {
     // Check system preference or default to dark
@@ -79,6 +83,7 @@ export default function Home() {
     setCurrentRepo(null);
     setSelectedFile(null);
     setShowHistory(false);
+    setShowForks(false);
     
     try {
       const { files, branch } = await fetchRepoData(owner, repo, session?.accessToken);
@@ -118,6 +123,25 @@ export default function Home() {
     setRepoInput(fullName);
     const [owner, repo] = fullName.split('/');
     loadRepo(owner, repo);
+  };
+
+  const handleLoadForks = async () => {
+    if (!session?.accessToken) return;
+    setLoading(true);
+    setError(null);
+    setShowHistory(false);
+    setCurrentRepo(null);
+    try {
+      const userForks = await fetchUserForks(session.accessToken);
+      setForks(userForks);
+      setShowForks(true);
+      if (userForks.length === 0) setError("No forked repositories found.");
+    } catch (e) {
+      console.error(e);
+      setError("Failed to load forks.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFileClick = async (file) => {
@@ -197,23 +221,28 @@ export default function Home() {
       <main className={styles.main}>
         {/* Sidebar */}
         <aside className={styles.sidebar}>
-          <div className={styles.sidebarHeader}>
-             <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1}}>
-                {showHistory ? 'Recent Repos' : (currentRepo ? currentRepo.full_name : 'Repositories')}
-             </div>
-             <div>
-               {showHistory && (
-                 <button onClick={() => setShowHistory(false)} className={styles.miniBtn} title="Back to Files">
-                   <ArrowLeft size={14} />
-                 </button>
-               )}
-               {!showHistory && (
-                 <button onClick={() => setShowHistory(true)} className={styles.miniBtn} title="View History">
-                   <History size={14} />
-                 </button>
-               )}
-             </div>
-          </div>
+           <div className={styles.sidebarHeader}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1}}>
+                 {showHistory ? 'Recent Repos' : showForks ? 'Your Forks' : (currentRepo ? currentRepo.full_name : 'Repositories')}
+              </div>
+              <div style={{display: 'flex', gap: '0.2rem'}}>
+                {(showHistory || showForks) && (
+                  <button onClick={() => { setShowHistory(false); setShowForks(false); }} className={styles.miniBtn} title="Back to Files">
+                    <ArrowLeft size={14} />
+                  </button>
+                )}
+                {!showHistory && !showForks && session && (
+                   <button onClick={handleLoadForks} className={styles.miniBtn} title="My Forks">
+                     <GitFork size={14} />
+                   </button>
+                )}
+                {!showHistory && !showForks && (
+                  <button onClick={() => setShowHistory(true)} className={styles.miniBtn} title="View History">
+                    <History size={14} />
+                  </button>
+                )}
+              </div>
+           </div>
           
           {loading && (
              <div className={styles.loadingOverlay}>
@@ -228,6 +257,22 @@ export default function Home() {
             </div>
           )}
           
+          {/* Forks View */}
+          {!loading && showForks && (
+             <ul className={styles.fileList}>
+               {forks.length === 0 ? (
+                 <li className={styles.fileItem} style={{cursor: 'default', color: 'var(--text-muted)'}}>No forks found</li>
+               ) : (
+                 forks.map(repo => (
+                   <li key={repo.full_name} className={styles.fileItem} onClick={() => handleHistoryClick(repo.full_name)}>
+                     <GitFork className={styles.fileIcon} size={14} />
+                     <span>{repo.name}</span>
+                   </li>
+                 ))
+               )}
+             </ul>
+          )}
+
           {/* History View */}
           {!loading && showHistory && (
              <>
@@ -254,7 +299,7 @@ export default function Home() {
           )}
 
           {/* Files View */}
-          {!loading && !showHistory && currentRepo && (
+          {!loading && !showHistory && !showForks && currentRepo && (
             <ul className={styles.fileList}>
               {currentRepo.files.map((file) => (
                 <li 
@@ -272,14 +317,21 @@ export default function Home() {
             </ul>
           )}
           
-          {!loading && !showHistory && !currentRepo && !error && (
+          {!loading && !showHistory && !showForks && !currentRepo && !error && (
              <div className={styles.placeholderState}>
-               <p>Enter a repository to start</p>
-               {recentRepos.length > 0 && (
-                 <button onClick={() => setShowHistory(true)} className={styles.textBtn}>
-                   <History size={14} /> View History
-                 </button>
-               )}
+               <p>Enter a repository or select one</p>
+               <div style={{display: 'flex', gap: '0.5rem', justifyContent: 'center'}}>
+                 {session && (
+                    <button onClick={handleLoadForks} className={styles.textBtn}>
+                      <GitFork size={14} /> My Forks
+                    </button>
+                 )}
+                 {recentRepos.length > 0 && (
+                   <button onClick={() => setShowHistory(true)} className={styles.textBtn}>
+                     <History size={14} /> View History
+                   </button>
+                 )}
+               </div>
              </div>
           )}
         </aside>
