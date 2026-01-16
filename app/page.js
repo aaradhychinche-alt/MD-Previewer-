@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import RemarkGfm from 'remark-gfm';
-import { FileText, Search, Github, AlertTriangle, Loader2, BookOpen, Sun, Moon, History, Trash2, ArrowLeft } from 'lucide-react';
+import { useSession, signIn, signOut } from "next-auth/react";
+import { FileText, Search, Github, AlertTriangle, Loader2, BookOpen, Sun, Moon, History, Trash2, ArrowLeft, LogIn, LogOut } from 'lucide-react';
 import { fetchRepoData, fetchMarkdown } from './lib/github';
 import styles from './page.module.css';
 
 export default function Home() {
+  const { data: session } = useSession();
   const [repoInput, setRepoInput] = useState('');
   const [currentRepo, setCurrentRepo] = useState(null); 
   const [selectedFile, setSelectedFile] = useState(null); 
@@ -79,7 +81,7 @@ export default function Home() {
     setShowHistory(false);
     
     try {
-      const { files, branch } = await fetchRepoData(owner, repo);
+      const { files, branch } = await fetchRepoData(owner, repo, session?.accessToken);
       if (files.length === 0) {
         setError('No Markdown files found in this repository.');
         setCurrentRepo({ owner, repo, branch, full_name: `${owner}/${repo}`, files: [] });
@@ -123,7 +125,7 @@ export default function Home() {
     
     setFileLoading(true);
     try {
-      const content = await fetchMarkdown(file.rawUrl);
+      const content = await fetchMarkdown(file.rawUrl, session?.accessToken);
       setSelectedFile({ ...file, content });
     } catch (err) {
       console.error(err);
@@ -161,6 +163,35 @@ export default function Home() {
         >
           {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
         </button>
+        
+        {/* Auth Button */}
+        {session ? (
+           <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+             {session.user?.image && (
+               <img 
+                 src={session.user.image} 
+                 alt={session.user.name} 
+                 style={{width: 28, height: 28, borderRadius: '50%', border: '1px solid var(--border-color)'}} 
+               />
+             )}
+             <button 
+               onClick={() => signOut()} 
+               className={styles.iconBtn}
+               title="Sign Out"
+             >
+               <LogOut size={20} />
+             </button>
+           </div>
+        ) : (
+          <button 
+            onClick={() => signIn('github')} 
+            className={styles.button}
+            title="Sign In with GitHub to view private repos"
+            style={{padding: '0.4rem 0.8rem', fontSize: '0.8rem', gap: '0.4rem'}}
+          >
+           <Github size={16} /> <span>Sign In</span>
+          </button>
+        )}
       </header>
       
       <main className={styles.main}>

@@ -1,19 +1,21 @@
 
 const BASE_URL = 'https://api.github.com';
 
-export async function fetchRepoData(owner, repo) {
+export async function fetchRepoData(owner, repo, token = null) {
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
   try {
     // 1. Get repo info for default branch
-    const repoRes = await fetch(`${BASE_URL}/repos/${owner}/${repo}`);
+    const repoRes = await fetch(`${BASE_URL}/repos/${owner}/${repo}`, { headers });
     if (repoRes.status === 404) throw new Error('Repository not found');
-    if (repoRes.status === 403) throw new Error('API Rate limit exceeded');
+    if (repoRes.status === 403) throw new Error('API Rate limit exceeded or Private Repo (Sign in required)');
     if (!repoRes.ok) throw new Error('Failed to fetch repository details');
     
     const repoData = await repoRes.json();
     const branch = repoData.default_branch;
 
     // 2. Get the tree recursively
-    const treeRes = await fetch(`${BASE_URL}/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`);
+    const treeRes = await fetch(`${BASE_URL}/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`, { headers });
     if (!treeRes.ok) throw new Error('Failed to fetch file tree');
     
     const treeData = await treeRes.json();
@@ -34,8 +36,9 @@ export async function fetchRepoData(owner, repo) {
   }
 }
 
-export async function fetchMarkdown(url) {
-  const res = await fetch(url);
+export async function fetchMarkdown(url, token = null) {
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const res = await fetch(url, { headers });
   if (!res.ok) throw new Error('Failed to fetch markdown content');
   return await res.text();
 }
