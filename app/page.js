@@ -259,18 +259,37 @@ export default function Home() {
           
           {/* User Repos View */}
           {!loading && showUserRepos && (
-             <ul className={styles.fileList}>
-               {userRepos.length === 0 ? (
-                 <li className={styles.fileItem} style={{cursor: 'default', color: 'var(--text-muted)'}}>No repositories found</li>
-               ) : (
-                 userRepos.map(repo => (
-                   <li key={repo.full_name} className={styles.fileItem} onClick={() => handleHistoryClick(repo.full_name)}>
-                     {repo.fork ? <GitFork className={styles.fileIcon} size={14} /> : <BookOpen className={styles.fileIcon} size={14} />}
-                     <span>{repo.name}</span>
-                   </li>
-                 ))
-               )}
-             </ul>
+            <div className={styles.repoListContainer}>
+               {/* My Projects */}
+               <div className={styles.repoSectionTitle}>My Projects</div>
+               <ul className={styles.fileList}>
+                 {userRepos.filter(r => !r.fork).length === 0 ? (
+                   <li className={styles.fileItem} style={{cursor: 'default', color: 'var(--text-muted)'}}>No projects found</li>
+                 ) : (
+                   userRepos.filter(r => !r.fork).map(repo => (
+                     <li key={repo.full_name} className={styles.fileItem} onClick={() => handleHistoryClick(repo.full_name)}>
+                       <BookOpen className={styles.fileIcon} size={14} />
+                       <span>{repo.name}</span>
+                     </li>
+                   ))
+                 )}
+               </ul>
+
+               {/* Forked Repos */}
+               <div className={styles.repoSectionTitle} style={{marginTop: '1rem'}}>Forked Repositories</div>
+               <ul className={styles.fileList}>
+                 {userRepos.filter(r => r.fork).length === 0 ? (
+                   <li className={styles.fileItem} style={{cursor: 'default', color: 'var(--text-muted)'}}>No forks found</li>
+                 ) : (
+                   userRepos.filter(r => r.fork).map(repo => (
+                     <li key={repo.full_name} className={styles.fileItem} onClick={() => handleHistoryClick(repo.full_name)}>
+                       <GitFork className={styles.fileIcon} size={14} />
+                       <span>{repo.name}</span>
+                     </li>
+                   ))
+                 )}
+               </ul>
+            </div>
           )}
 
           {/* History View */}
