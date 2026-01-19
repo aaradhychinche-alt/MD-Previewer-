@@ -46,18 +46,19 @@ export async function fetchMarkdown(url, token = null) {
   return await res.text();
 }
 
-export async function fetchUserForks(token) {
+export async function fetchUserRepos(token) {
   if (!token) return [];
   const headers = { Authorization: `Bearer ${token}` };
   // Fetch up to 100 recently updated repos
   const res = await fetch(`${BASE_URL}/user/repos?sort=updated&per_page=100`, { headers });
-  if (!res.ok) throw new Error('Failed to fetch forks');
+  if (!res.ok) throw new Error('Failed to fetch repositories');
   
   const repos = await res.json();
-  // Filter for forks
-  return repos.filter(repo => repo.fork).map(repo => ({
+  // Return all repos (map to needed structure)
+  return repos.map(repo => ({
     full_name: repo.full_name,
     name: repo.name,
-    owner: repo.owner.login
+    owner: repo.owner.login,
+    fork: repo.fork
   }));
 }

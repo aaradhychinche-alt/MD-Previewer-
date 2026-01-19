@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import RemarkGfm from 'remark-gfm';
 import { useSession, signIn, signOut } from "next-auth/react";
 import { FileText, Search, Github, AlertTriangle, Loader2, BookOpen, Sun, Moon, History, Trash2, ArrowLeft, LogIn, LogOut, GitFork } from 'lucide-react';
-import { fetchRepoData, fetchMarkdown, fetchUserForks } from './lib/github';
+import { fetchRepoData, fetchMarkdown, fetchUserRepos } from './lib/github';
 import styles from './page.module.css';
 
 export default function Home() {
@@ -22,9 +22,9 @@ export default function Home() {
   const [recentRepos, setRecentRepos] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   
-  // Forks State
-  const [forks, setForks] = useState([]);
-  const [showForks, setShowForks] = useState(false);
+  // User Repos State
+  const [userRepos, setUserRepos] = useState([]);
+  const [showUserRepos, setShowUserRepos] = useState(false);
 
   useEffect(() => {
     // Check system preference or default to dark
@@ -83,7 +83,7 @@ export default function Home() {
     setCurrentRepo(null);
     setSelectedFile(null);
     setShowHistory(false);
-    setShowForks(false);
+    setShowUserRepos(false);
     
     try {
       const { files, branch } = await fetchRepoData(owner, repo, session?.accessToken);
@@ -125,20 +125,20 @@ export default function Home() {
     loadRepo(owner, repo);
   };
 
-  const handleLoadForks = async () => {
+  const handleLoadUserRepos = async () => {
     if (!session?.accessToken) return;
     setLoading(true);
     setError(null);
     setShowHistory(false);
     setCurrentRepo(null);
     try {
-      const userForks = await fetchUserForks(session.accessToken);
-      setForks(userForks);
-      setShowForks(true);
-      if (userForks.length === 0) setError("No forked repositories found.");
+      const repos = await fetchUserRepos(session.accessToken);
+      setUserRepos(repos);
+      setShowUserRepos(true);
+      if (repos.length === 0) setError("No repositories found.");
     } catch (e) {
       console.error(e);
-      setError("Failed to load forks.");
+      setError("Failed to load repositories.");
     } finally {
       setLoading(false);
     }
@@ -223,20 +223,20 @@ export default function Home() {
         <aside className={styles.sidebar}>
            <div className={styles.sidebarHeader}>
               <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1}}>
-                 {showHistory ? 'Recent Repos' : showForks ? 'Your Forks' : (currentRepo ? currentRepo.full_name : 'Repositories')}
+                 {showHistory ? 'Recent Repos' : showUserRepos ? 'Your Repositories' : (currentRepo ? currentRepo.full_name : 'Repositories')}
               </div>
               <div style={{display: 'flex', gap: '0.2rem'}}>
-                {(showHistory || showForks) && (
-                  <button onClick={() => { setShowHistory(false); setShowForks(false); }} className={styles.miniBtn} title="Back to Files">
+                {(showHistory || showUserRepos) && (
+                  <button onClick={() => { setShowHistory(false); setShowUserRepos(false); }} className={styles.miniBtn} title="Back to Files">
                     <ArrowLeft size={14} />
                   </button>
                 )}
-                {!showHistory && !showForks && session && (
-                   <button onClick={handleLoadForks} className={styles.miniBtn} title="My Forks">
-                     <GitFork size={14} />
+                {!showHistory && !showUserRepos && session && (
+                   <button onClick={handleLoadUserRepos} className={styles.miniBtn} title="My Repos">
+                     <BookOpen size={14} />
                    </button>
                 )}
-                {!showHistory && !showForks && (
+                {!showHistory && !showUserRepos && (
                   <button onClick={() => setShowHistory(true)} className={styles.miniBtn} title="View History">
                     <History size={14} />
                   </button>
@@ -257,15 +257,15 @@ export default function Home() {
             </div>
           )}
           
-          {/* Forks View */}
-          {!loading && showForks && (
+          {/* User Repos View */}
+          {!loading && showUserRepos && (
              <ul className={styles.fileList}>
-               {forks.length === 0 ? (
-                 <li className={styles.fileItem} style={{cursor: 'default', color: 'var(--text-muted)'}}>No forks found</li>
+               {userRepos.length === 0 ? (
+                 <li className={styles.fileItem} style={{cursor: 'default', color: 'var(--text-muted)'}}>No repositories found</li>
                ) : (
-                 forks.map(repo => (
+                 userRepos.map(repo => (
                    <li key={repo.full_name} className={styles.fileItem} onClick={() => handleHistoryClick(repo.full_name)}>
-                     <GitFork className={styles.fileIcon} size={14} />
+                     {repo.fork ? <GitFork className={styles.fileIcon} size={14} /> : <BookOpen className={styles.fileIcon} size={14} />}
                      <span>{repo.name}</span>
                    </li>
                  ))
@@ -299,7 +299,7 @@ export default function Home() {
           )}
 
           {/* Files View */}
-          {!loading && !showHistory && !showForks && currentRepo && (
+          {!loading && !showHistory && !showUserRepos && currentRepo && (
             <ul className={styles.fileList}>
               {currentRepo.files.map((file) => (
                 <li 
@@ -317,13 +317,13 @@ export default function Home() {
             </ul>
           )}
           
-          {!loading && !showHistory && !showForks && !currentRepo && !error && (
+          {!loading && !showHistory && !showUserRepos && !currentRepo && !error && (
              <div className={styles.placeholderState}>
                <p>Enter a repository or select one</p>
                <div style={{display: 'flex', gap: '0.5rem', justifyContent: 'center'}}>
                  {session && (
-                    <button onClick={handleLoadForks} className={styles.textBtn}>
-                      <GitFork size={14} /> My Forks
+                    <button onClick={handleLoadUserRepos} className={styles.textBtn}>
+                      <BookOpen size={14} /> My Repos
                     </button>
                  )}
                  {recentRepos.length > 0 && (
