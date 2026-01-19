@@ -333,3 +333,26 @@
     padding: 1.5rem;
   }
 }
+
+.repoListContainer {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 1rem 0;
+}
+
+.repoListContainer .fileList {
+  flex: none;
+  overflow: visible;
+  padding: 0 0.5rem;
+}
+
+.repoSectionTitle {
+  padding: 0 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
