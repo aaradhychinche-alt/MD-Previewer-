@@ -26,8 +26,8 @@ export async function fetchRepoData(owner, repo, token = null) {
       .map(node => ({
         path: node.path,
         url: node.url, // API blob url
-        // Construct raw url for easier fetching likely
-        rawUrl: `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${node.path}`
+        // Use API contents URL to avoid CORS issues and enable auth for private repos
+        rawUrl: `https://api.github.com/repos/${owner}/${repo}/contents/${node.path.split('/').map(encodeURIComponent).join('/')}?ref=${branch}`
       }));
       
     return { files: mdFiles, branch };
@@ -37,7 +37,10 @@ export async function fetchRepoData(owner, repo, token = null) {
 }
 
 export async function fetchMarkdown(url, token = null) {
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const headers = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    'Accept': 'application/vnd.github.raw+json'
+  };
   const res = await fetch(url, { headers });
   if (!res.ok) throw new Error('Failed to fetch markdown content');
   return await res.text();
